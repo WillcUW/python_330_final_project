@@ -1,4 +1,3 @@
-<!-- templates/photo_journal.html.jinja2 -->
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -18,7 +17,6 @@
     </nav>
 
     <div class="grid grid-cols-12 gap-4 mt-4">
-        <!-- Column -->
         <div class="col-span-12 md:col-span-4 mx-4">
             <h1 class="text-xl">Add new photo</h1>
             <form hx-post="/post-photo"
@@ -45,13 +43,12 @@
               </button>
             </form>
         </div>
-        <!-- Column -->
         <div class="col-span-12 md:col-span-8 mx-4">
           <div class="flex justify-between">
           <h1 class="text-xl mb-4">My photos</h1>
           </div>
             <div id="photos">
-                {% block photos %}
+                {% block photos scoped %}
                 {% if invalid_image_file %}
                 <div class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">
                     <span class="font-medium">Invalid image file!</span> Upload a valid image file (PNG, JPG, GIF).
@@ -60,7 +57,12 @@
                 {% if photos %}
                     {% for photo in photos %}
                         <div id="photo-{{ photo.doc_id }}"
-                             class="bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 mb-4">
+                             class="bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 mb-4"
+                             {% if loop.last %}
+                                hx-get="/load-photos?photo_count={{ photo_count }}"
+                                hx-trigger="intersect once"
+                                hx-swap="afterend"
+                             {% endif %}>
                             <div class="flex justify-center">
                                 <img class="rounded-t-lg transition" src="{{ url_for('static', path=photo.file_path) }}" alt="" />
                             </div>
@@ -68,14 +70,27 @@
                                 <div class="p-5 flex-grow">
                                     <p class="mb-2 text-sm leading-6 text-gray-600">Uploaded {{ photo.uploaded_at }}</p>
                                     <div id="photo-edit-fields-{{ photo.doc_id }}">
-                                        <p class="mb-3 font-normal text-gray-700 dark:text-gray-400 cursor-pointer">{{ photo.entry }}</p>
+                                        {% block click_to_edit_entry scoped %}
+                                            {% if photo %}
+                                                <p class="mb-3 font-normal text-gray-700 dark:text-gray-400 cursor-pointer"
+                                                   hx-get="/edit-photo?photo_id={{ photo.doc_id }}"
+                                                   hx-target="#photo-edit-fields-{{ photo.doc_id }}"
+                                                   hx-swap="innerHTML">
+                                                    {{ photo.entry }}
+                                                </p>
+                                            {% endif %}
+                                        {% endblock %}
                                     </div>
                                 </div>
                                 <div>
                                 <svg viewBox="0 0 448 512"
                                      xmlns="http://www.w3.org/2000/svg"
-                                     class="h-6 mt-4 mr-4 fill-red-400 cursor-pointer ml-auto">
-                                    <path d="M432 80h-82.38l-34-56.75C306.1 8.827 291.4 0 274.6 0H173.4C156.6 0 141 8.827 132.4 23.25L98.38 80H16C7.125 80 0 87.13 0 96v16C0 120.9 7.125 128 16 128H32v320c0 35.35 28.65 64 64 64h256c35.35 0 64-28.65 64-64V128h16C440.9 128 448 120.9 448 112V96C448 87.13 440.9 80 432 80zM171.9 50.88C172.9 49.13 174.9 48 177 48h94c2.125 0 4.125 1.125 5.125 2.875L293.6 80H154.4L171.9 50.88zM352 464H96c-8.837 0-16-7.163-16-16V128h288v320C368 456.8 360.8 464 352 464zM224 416c8.844 0 16-7.156 16-16V192c0-8.844-7.156-16-16-16S208 183.2 208 192v208C208 408.8 215.2 416 224 416zM144 416C152.8 416 160 408.8 160 400V192c0-8.844-7.156-16-16-16S128 183.2 128 192v208C128 408.8 135.2 416 144 416zM304 416c8.844 0 16-7.156 16-16V192c0-8.844-7.156-16-16-16S288 183.2 288 192v208C288 408.8 295.2 416 304 416z"/>
+                                     class="h-6 mt-4 mr-4 fill-red-400 cursor-pointer ml-auto"
+                                     hx-delete="/delete-photo?photo_id={{ photo.doc_id }}"
+                                     hx-target="#photo-{{ photo.doc_id }}"
+                                     hx-swap="outerHTML"
+                                     hx-confirm="Are you sure you want to delete this photo?">
+                                    <path d="M432 80h-82.38l-34-56.75C306.1 8.827 291.4 0 274.6 0H173.4C156.6 0 141 8.827 132.4 23.25L98.38 80H16C7.125 80 0 87.13 0 96v16C0 120.9 7.125 128 16 128H32v320c0 35.35 28.65 64 64 64h256c35.35 0 64-28.65 64-64V128h16C440.9 128 448 120.9 448 112V96C448 87.13 440.9 80 432 80zM171.9 50.88C172.9 49.13 174.9 48 177 48h94c2.125 0 4.125 1.125 5.125 2.875L293.6 80H154.4L171.9 50.88zM352 464H96c-8.837 0-16-7.163-16-16V128h288v320C368 456.8 360.8 464 352 464zM224 416c8.844 0 16-7.156 16-16V192c0-8.844-7.156-16-16-16S208 183.2 208 192v208C208 408.8 215.2 416 224 416zM144 416c8.844 0 16-7.156 16-16V192c0-8.844-7.156-16-16-16S128 183.2 128 192v208C128 408.8 135.2 416 144 416zM304 416c8.844 0 16-7.156 16-16V192c0-8.844-7.156-16-16-16S288 183.2 288 192v208C288 408.8 295.2 416 304 416z"/>
                                 </svg>
                                 </div>
                             </div>
@@ -83,7 +98,22 @@
                     {% endfor %}
                 {% endif %}
                 {% endblock %}
-                </div>
+
+                {% block edit_photo_form scoped %}
+                    {% if photo %}
+                        <form hx-post="/edit-photo" hx-target="#photo-edit-fields-{{ photo.doc_id }}" hx-swap="innerHTML">
+                             <input name="photo_id" type="hidden" value="{{ photo.doc_id }}">
+                             <textarea name="entry" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" rows="3">{{ photo.entry }}</textarea>
+                             <div class="flex justify-end mt-2">
+                                 <button type="submit"
+                                         class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                                     Save
+                                 </button>
+                                 <button hx-get="/" hx-target="body" hx-push-url="true" type="button" class="ml-2 rounded-md bg-gray-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-400">Cancel</button>
+                             </div>
+                        </form>
+                    {% endif %}
+                {% endblock %}
             </div>
         </div>
     </body>
