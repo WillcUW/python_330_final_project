@@ -17,7 +17,10 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Blocks(directory="templates")
 
 def get_db():
+    if "pytest" in os.getenv("PYTEST_CURRENT_TEST", ""):
+         return TinyDB("test.json")
     return TinyDB("db.json")
+
 
 PHOTOS_PER_PAGE = 3
 
@@ -74,5 +77,38 @@ async def post_photo(request: Request, entry: Annotated[str, Form()], photo_uplo
         "photos": sorted_photos,
         "photo_count": PHOTOS_PER_PAGE,
         "invalid_image_file": not valid_image_file,
+    }
+    return templates.TemplateResponse(name="photo_journal.html.jinja2", context=context, block_name="photos")
+
+@app.get("/edit-photo", response_class=HTMLResponse)
+def get_edit_photo_form(request: Request, photo_id: int, db: TinyDB = Depends(get_db)):
+    photo = db.get(doc_id=photo_id)
+    context = {"request": request, "photo": photo}
+    return templates.TemplateResponse("photo_journal.html.jinja2", context, block_name="edit_photo_form")
+
+@app.post("/edit-photo", response_class=HTMLResponse)
+def edit_photo(request: Request, entry: Annotated[str, Form()], photo_id: Annotated[int, Form()], db: TinyDB = Depends(get_db)):
+    db.update({"entry": entry}, doc_ids=[photo_id])
+    photo = db.get(doc_id=photo_id)
+    context = {"request": request, "photo": photo}
+    return templates.TemplateResponse("photo_journal.html.jinja2", context, block_name="click_to_edit_entry")
+
+@app.delete("/delete-photo", status_code=200)
+def delete_photo(photo_id: int, db: TinyDB = Depends(get_db)):
+    photo = db.get(doc_id=photo_id)
+    if photo:
+        if os.path.exists(f"static{photo['file_path']}"):
+            os.remove(f"static{photo['file_path']}")
+        db.remove(doc_ids=[photo_id])
+    return Response(status_code=200)
+
+@app.get("/load-photos", response_class=HTMLResponse)
+def load_photos(request: Request, photo_count: int, db: TinyDB = Depends(get_db)):
+    new_photo_count = photo_count + PHOTOS_PER_PAGE
+    sorted_photos = get_sorted_photos(db.all(), photo_count, new_photo_count)
+    context = {
+        "request": request,
+        "photos": sorted_photos,
+        "photo_count": new_photo_count,
     }
     return templates.TemplateResponse(name="photo_journal.html.jinja2", context=context, block_name="photos")
